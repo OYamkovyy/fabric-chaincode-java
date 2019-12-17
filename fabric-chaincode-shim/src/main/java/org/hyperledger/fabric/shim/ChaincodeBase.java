@@ -30,6 +30,7 @@ import java.util.logging.LogRecord;
 import java.util.logging.Logger;
 import java.util.logging.SimpleFormatter;
 
+import io.grpc.stub.StreamObserver;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.Options;
@@ -38,7 +39,9 @@ import org.hyperledger.fabric.Logging;
 import org.hyperledger.fabric.contract.ContractRouter;
 import org.hyperledger.fabric.metrics.Metrics;
 import org.hyperledger.fabric.protos.peer.Chaincode.ChaincodeID;
+import org.hyperledger.fabric.protos.peer.ChaincodeShim;
 import org.hyperledger.fabric.protos.peer.ChaincodeShim.ChaincodeMessage;
+import org.hyperledger.fabric.shim.impl.ChaincodeMessageFactory;
 import org.hyperledger.fabric.shim.impl.ChaincodeSupportClient;
 import org.hyperledger.fabric.shim.impl.InnvocationTaskManager;
 
@@ -76,7 +79,7 @@ public abstract class ChaincodeBase implements Chaincode {
 
     private String id;
 
-    private static final String CORE_CHAINCODE_ID_NAME = "CORE_CHAINCODE_ID_NAME";
+    public static final String CORE_CHAINCODE_ID_NAME = "CORE_CHAINCODE_ID_NAME";
     private static final String CORE_PEER_ADDRESS = "CORE_PEER_ADDRESS";
     private static final String CORE_PEER_TLS_ENABLED = "CORE_PEER_TLS_ENABLED";
     private static final String CORE_PEER_TLS_ROOTCERT_FILE = "CORE_PEER_TLS_ROOTCERT_FILE";

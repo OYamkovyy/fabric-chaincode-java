@@ -104,7 +104,7 @@ public class InnvocationTaskManager {
         taskService = new InnvocationTaskExecutor(corePoolSize, maximumPoolSize, keepAliveTime, unit, workQueue,
                 threadFactory, handler);
                
-        Metrics.getProvider().setTaskMetricsCollector(taskService);
+//        Metrics.getProvider().setTaskMetricsCollector(taskService);
       
     }
 

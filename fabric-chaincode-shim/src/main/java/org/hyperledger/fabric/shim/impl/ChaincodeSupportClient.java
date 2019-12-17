@@ -31,6 +31,10 @@ public class ChaincodeSupportClient {
         this.stub = ChaincodeSupportGrpc.newStub(channel);
     }
 
+    public ChaincodeSupportStub getStub() {
+        return stub;
+    }
+
     private void shutdown(InnvocationTaskManager itm) {
 
         // first shutdown the thread pool

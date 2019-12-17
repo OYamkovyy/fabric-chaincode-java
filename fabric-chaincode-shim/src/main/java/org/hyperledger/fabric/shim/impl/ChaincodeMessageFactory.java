@@ -106,7 +106,7 @@ public class ChaincodeMessageFactory {
         return newEventMessage(INVOKE_CHAINCODE, channelId, txId, payload, null);
     }
 
-    protected static ChaincodeMessage newRegisterChaincodeMessage(final ChaincodeID chaincodeId) {
+    public static ChaincodeMessage newRegisterChaincodeMessage(final ChaincodeID chaincodeId) {
         return ChaincodeMessage.newBuilder()
                 .setType(REGISTER)
                 .setPayload(chaincodeId.toByteString())
