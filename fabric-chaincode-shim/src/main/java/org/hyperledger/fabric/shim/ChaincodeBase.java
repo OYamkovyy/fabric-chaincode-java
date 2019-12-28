@@ -114,7 +114,7 @@ public abstract class ChaincodeBase implements Chaincode {
     }
 
     protected void connectToPeer() throws IOException {
-        
+
         // The ChaincodeSupport Client is a wrapper around the gRPC streams that
         // come from the single 'register' call that is made back to the peer
         // 
@@ -123,14 +123,34 @@ public abstract class ChaincodeBase implements Chaincode {
         // 
         // This is then passed to the ChaincodeSupportClient to be connected to the
         // gRPC streams
-        
+
         final ChaincodeID chaincodeId = ChaincodeID.newBuilder().setName(this.id).build();
         final ManagedChannelBuilder<?> channelBuilder = newChannelBuilder();
         ChaincodeSupportClient chaincodeSupportClient = new ChaincodeSupportClient(channelBuilder);
-        
+
         InnvocationTaskManager itm = InnvocationTaskManager.getManager(this, chaincodeId);
         chaincodeSupportClient.start(itm);
 
+    }
+
+    protected InnvocationTaskManager connectToPeer(StreamObserver<ChaincodeMessage> requestObserver) throws IOException {
+
+        // The ChaincodeSupport Client is a wrapper around the gRPC streams that
+        // come from the single 'register' call that is made back to the peer
+        //
+        // Once this has been created, the InnvocationTaskManager that is responsible
+        // for the thread management can be created.
+        //
+        // This is then passed to the ChaincodeSupportClient to be connected to the
+        // gRPC streams
+
+        final ChaincodeID chaincodeId = ChaincodeID.newBuilder().setName(this.id).build();
+        final ManagedChannelBuilder<?> channelBuilder = newChannelBuilder();
+        ChaincodeSupportClient chaincodeSupportClient = new ChaincodeSupportClient(channelBuilder);
+
+        InnvocationTaskManager itm = InnvocationTaskManager.getManager(this, chaincodeId);
+        chaincodeSupportClient.start(itm, requestObserver);
+        return itm;
     }
 
 

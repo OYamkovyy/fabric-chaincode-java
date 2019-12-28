@@ -7,45 +7,30 @@ SPDX-License-Identifier: Apache-2.0
 package org.hyperledger.fabric.shim;
 
 
-import io.grpc.*;
 import io.grpc.Server;
+import io.grpc.ServerBuilder;
+import io.grpc.netty.GrpcSslContexts;
 import io.grpc.netty.NettyServerBuilder;
 import io.grpc.stub.StreamObserver;
-import java.io.IOException;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.locks.ReentrantLock;
-import java.util.function.Consumer;
-
-import io.grpc.stub.StreamObservers;
-import org.hyperledger.fabric.protos.peer.Chaincode;
+import io.netty.handler.ssl.SslContext;
+import io.netty.handler.ssl.SslContextBuilder;
 import org.hyperledger.fabric.protos.peer.ChaincodeGrpc;
 import org.hyperledger.fabric.protos.peer.ChaincodeShim;
-import org.hyperledger.fabric.shim.impl.ChaincodeMessageFactory;
-import org.hyperledger.fabric.shim.impl.ChaincodeSupportClient;
+import org.hyperledger.fabric.shim.impl.InnvocationTaskManager;
 
 import javax.net.ssl.SSLException;
-
-import static org.hyperledger.fabric.shim.ChaincodeBase.CORE_CHAINCODE_ID_NAME;
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Paths;
+import java.util.concurrent.TimeUnit;
 
 public class NettyGrpcServer implements GrpcServer {
 
     private final Server server;
 
-    static class ConnectChaincodeToPeer extends ChaincodeGrpc.ChaincodeImplBase {
-
-        @Override
-        public StreamObserver<ChaincodeShim.ChaincodeMessage> connect(StreamObserver<ChaincodeShim.ChaincodeMessage> responseObserver) {
-            String chaincodeId = System.getenv(CORE_CHAINCODE_ID_NAME);
-            final ChaincodeShim.ChaincodeMessage reply = ChaincodeMessageFactory.newRegisterChaincodeMessage(Chaincode.ChaincodeID.newBuilder().setName(chaincodeId).build());
-            responseObserver.onNext(reply);
-            responseObserver.onCompleted();
-            return responseObserver;
-        }
-    }
-
-    public NettyGrpcServer(int port, TlsConfig tlsConfig, String peerHost, int peerPort, ChaincodeBase chaincodeBase, ChaincodeServer chaincodeServer) throws SSLException {
-        final ServerBuilder serverBuilder = NettyServerBuilder.forPort(port)
-                .addService(new ConnectChaincodeToPeer())
+    public NettyGrpcServer(int port, TlsConfig tlsConfig, ChaincodeBase chaincodeBase) throws SSLException {
+        final NettyServerBuilder serverBuilder = NettyServerBuilder.forPort(port)
+                .addService(new ChatChaincodeWithPeer(chaincodeBase))
                 .keepAliveTime(1, TimeUnit.MINUTES)
                 .keepAliveTimeout(20, TimeUnit.SECONDS)
                 .permitKeepAliveTime(1, TimeUnit.MINUTES)
@@ -53,22 +38,17 @@ public class NettyGrpcServer implements GrpcServer {
                 .maxConnectionAge(5, TimeUnit.SECONDS)
                 .maxInboundMetadataSize(100 * 1024 * 1024)
                 .maxInboundMessageSize(100 * 1024 * 1024);
-//
-//                .build()
-//                .start();
+//                .withChildOption(ChannelOption.SO_REUSEADDR, true);
 
-//        final SslContext sslContext;
-//        if (tlsConfig != null && !tlsConfig.isDisabled()) {
-//            final File certificatePemFile = Paths.get(tlsConfig.getCert()).toFile();
-//            final File privateKeyPemFile = Paths.get(tlsConfig.getKey()).toFile();
+        final SslContext sslContext;
+        if (tlsConfig != null && !tlsConfig.isDisabled()) {
+            final File certificatePemFile = Paths.get(tlsConfig.getCert()).toFile();
+            final File privateKeyPemFile = Paths.get(tlsConfig.getKey()).toFile();
 
 //            sslContext = SslContextBuilder.forServer(certificatePemFile, privateKeyPemFile).build();
-//            sslContext = GrpcSslContexts.configure(SslContextBuilder.forServer(certificatePemFile, privateKeyPemFile)).build();
-//            serverBuilder.usesslContext(sslContext);
-//        }
-
-//        final ServerServiceDefinition serverServiceDefinition = ServerServiceDefinition.builder(ServiceDescriptor.newBuilder("").build()).build();
-//        nettyChannelBuilder.addService(serverServiceDefinition);
+            sslContext = GrpcSslContexts.configure(SslContextBuilder.forServer(certificatePemFile, privateKeyPemFile)).build();
+            serverBuilder.sslContext(sslContext);
+        }
 
         server = serverBuilder.build();
     }
@@ -104,7 +84,45 @@ public class NettyGrpcServer implements GrpcServer {
 
     public void stop() throws InterruptedException {
         if (server != null) {
-                server.shutdown().awaitTermination(30, TimeUnit.SECONDS);
+            server.shutdown().awaitTermination(30, TimeUnit.SECONDS);
+        }
+    }
+
+    class ChatChaincodeWithPeer extends ChaincodeGrpc.ChaincodeImplBase {
+
+        private ChaincodeBase chaincodeBase;
+
+        ChatChaincodeWithPeer(ChaincodeBase chaincodeBase) {
+            this.chaincodeBase = chaincodeBase;
+        }
+
+        @Override
+        public StreamObserver<ChaincodeShim.ChaincodeMessage> connect(StreamObserver<ChaincodeShim.ChaincodeMessage> responseObserver) {
+
+            InnvocationTaskManager itm = null;
+            try {
+                itm = chaincodeBase.connectToPeer(responseObserver);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
+            InnvocationTaskManager finalItm = itm;
+            return new StreamObserver<ChaincodeShim.ChaincodeMessage>() {
+                @Override
+                public void onNext(ChaincodeShim.ChaincodeMessage value) {
+                    finalItm.onChaincodeMessage(value);
+                }
+
+                @Override
+                public void onError(Throwable t) {
+                    t.printStackTrace();
+                }
+
+                @Override
+                public void onCompleted() {
+                    responseObserver.onCompleted();
+                }
+            };
         }
     }
 }

@@ -13,7 +13,7 @@ public class ServerImpl implements Server {
 
     private GrpcServer grpcServer;
 
-    public ServerImpl(String address, TlsConfig tlsConf, ChaincodeBase chaincodeBase, ChaincodeServer chaincodeServer) throws IOException {
+    public ServerImpl(String address, TlsConfig tlsConf, ChaincodeBase chaincodeBase) throws IOException {
         if (address == null || address.isEmpty()) {
             throw new IOException("server listen address not provided");
         }
@@ -21,7 +21,7 @@ public class ServerImpl implements Server {
         final String host = address.substring(0, address.indexOf(":"));
         final int port = Integer.parseInt(address.substring(address.indexOf(":") + 1));
 
-        grpcServer = new NettyGrpcServer(port, tlsConf, chaincodeBase.getHost(), chaincodeBase.getPort(), chaincodeBase, chaincodeServer);
+        grpcServer = new NettyGrpcServer(port, tlsConf, chaincodeBase);
     }
 
     public void start() throws IOException {

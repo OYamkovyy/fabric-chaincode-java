@@ -14,10 +14,10 @@ import java.io.IOException;
 
 public class Application {
 
+// CORE_CHAINCODE_ID_NAME=externalcc:06d1d324e858751d6eb4211885e9fd9ff74b62cb4ffda2242277fac95d467033
     public static void main(String[] args) throws IOException, InterruptedException {
         ChaincodeServer chaincodeServer = new ChaincodeServerImpl(
             new SimpleAsset(),
-            "mycc:e484f74af068d10be10c4760f1c92bb324f7a304bb3e91217b13576de5b0a081",
             "127.0.0.1:9999",
             new TlsConfig() {
                 @Override
@@ -29,5 +29,4 @@ public class Application {
         chaincodeServer.start();
         chaincodeServer.blockUntilShutdown();
     }
-
 }
