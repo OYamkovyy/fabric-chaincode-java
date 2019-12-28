@@ -14,7 +14,7 @@ import java.io.IOException;
 
 public class Application {
 
-// CORE_CHAINCODE_ID_NAME=externalcc:06d1d324e858751d6eb4211885e9fd9ff74b62cb4ffda2242277fac95d467033
+// ENV CORE_CHAINCODE_ID_NAME=externalcc:06d1d324e858751d6eb4211885e9fd9ff74b62cb4ffda2242277fac95d467033
     public static void main(String[] args) throws IOException, InterruptedException {
         ChaincodeServer chaincodeServer = new ChaincodeServerImpl(
             new SimpleAsset(),
